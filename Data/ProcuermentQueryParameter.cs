@@ -8,12 +8,6 @@ using Procuerment.Data;
 using Procuerment.Models;
 using AutoMapper;
 
-
-
-
-
-
-
 namespace Procuerment.Data
 {
 

@@ -48,7 +48,6 @@ namespace Procuerment
                     return (false, "Not Found");
                 }
             }
-
             return (true, null);
 
         }
@@ -94,8 +93,6 @@ namespace Procuerment
             {
                 logger?.LogInformation("Querying Procuerment");
                 context.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
-                // IQueryable<Models.Procuerment> allProcuerment;
-                // var allProcuerment = await context.Procurement.ToListAsync();
                 var data = await context.Procurement
                 .Include(s => s.Baseline)
                 .Include(s => s.ValueLever)
@@ -108,16 +105,18 @@ namespace Procuerment
                 .Include(s => s.CompanyCodeNavigation)
                 .Include(s => s.MaterialGroupNavigation)
                 .Include(s => s.MaterialDescriptionNavigation)
+                .OrderByDescending(x => x.Creationdate)
                 .ToListAsync();
-                //var data = allProcuerment.OrderByDescending(x => x.Creationdate);
-
                 if (data != null && data.Any())
                 {
                     logger?.LogInformation($"Procuerment(s) found", data);
                     var result = mapper.Map<IEnumerable<Models.Procurement>>(data);
                     return (true, result, null);
                 }
-                return (false, null, "Not Found");
+                else
+                {
+                    return (false, null, "Not Found");
+                }
             }
             catch (Exception ex)
             {
@@ -128,33 +127,73 @@ namespace Procuerment
             }
         }
 
-        public async Task<(bool IsSuccess, IEnumerable<Models.Procurement> Procuerment, string ErrorMessage)> GetProcuermentByFilter(String queryParameter)
+        public async Task<(bool IsSuccess, IEnumerable<Models.Procurement> Procuerment, string ErrorMessage)> GetProcuermentByFilter(string queryParameter, DateTime fromDate, DateTime toDate)
         {
             try
             {
                 logger?.LogInformation("Querying Procuerment");
                 context.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
-                // IQueryable<Models.Procuerment> allProcuerment;
                 if (queryParameter != null)
                 {
-                    var allProcuerment = await context.Procurement.Where(x => x.InitiativeTitle == queryParameter
-                    || x.CreatedBy == queryParameter).ToListAsync();//search with unique ID reamins
-                    var data = allProcuerment.OrderByDescending(x => x.Creationdate);
+                    var data = await context.Procurement.Where(x => x.InitiativeTitle == queryParameter
+                    || x.CreatedBy == queryParameter).OrderByDescending(x => x.Creationdate)
+                    .Include(s => s.Baseline)
+                .Include(s => s.ValueLever)
+                .Include(s => s.InitiativeStatus)
+                .Include(s => s.FinancialStatementArea)
+                .Include(s => s.Role)
+                .Include(s => s.Period)
+                .Include(s => s.MilestoneStatus)
+                .Include(s => s.Supplier)
+                .Include(s => s.CompanyCodeNavigation)
+                .Include(s => s.MaterialGroupNavigation)
+                .Include(s => s.MaterialDescriptionNavigation)
+                .OrderByDescending(x => x.Creationdate)
+                .ToListAsync(); ;//search with unique ID reamins
                     if (data != null && data.Any())
                     {
                         logger?.LogInformation($"Procuerment(s) found");
                         var result = mapper.Map<IEnumerable<Models.Procurement>>(data);
                         return (true, result, null);
                     }
+                    else
+                    {
+                        return (false, null, "Not Found");
+                    }
                 }
-                return (false, null, "Not Found");
+                else if (fromDate != null && toDate != null)
+                {
+                    var data = await context.Procurement.Where(x => x.Creationdate >= fromDate
+                    && x.Creationdate <= toDate).Include(s => s.Baseline)
+                .Include(s => s.ValueLever)
+                .Include(s => s.InitiativeStatus)
+                .Include(s => s.FinancialStatementArea)
+                .Include(s => s.Role)
+                .Include(s => s.Period)
+                .Include(s => s.MilestoneStatus)
+                .Include(s => s.Supplier)
+                .Include(s => s.CompanyCodeNavigation)
+                .Include(s => s.MaterialGroupNavigation)
+                .Include(s => s.MaterialDescriptionNavigation)
+                .OrderByDescending(x => x.Creationdate)
+                .ToListAsync(); ;//search with unique ID reamins
+                    if (data != null)
+                    {
+                        logger?.LogInformation($"Procuerment(s) found");
+                        var result = mapper.Map<IEnumerable<Models.Procurement>>(data);
+                        return (true, result, null);
+                    }
+                    else
+                    {
+                        return (false, null, "Not records found");
+                    }
+                }
+                return (false, null, "Please provide all inputs");
             }
             catch (Exception ex)
             {
                 logger?.LogError(ex.ToString());
                 return (false, null, ex.Message);
-
-
             }
         }
         public bool saveChanges()
@@ -167,15 +206,24 @@ namespace Procuerment
             throw new NotImplementedException();
         }
 
+        public void deletedata(Models.Procurement pm)
+        {
+            if (pm == null)
+            {
+                throw new ArgumentNullException(nameof(pm));
+            }
+            context.Procurement.Remove(pm);
+
+        }
+
+
         public async Task<(bool IsSuccess, LookUps lookup, string ErrorMessage)> GetAlllookups()
         {
             try
             {
                 logger?.LogInformation("Querying Procuerment");
                 context.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
-
                 var alldata = new Models.LookUps();
-
                 alldata.BaselineType = await context.BaselineType.ToListAsync();
                 alldata.CompanyCode = await context.CompanyCode.ToListAsync();
                 alldata.FinancialStatementArea = await context.FinancialStatementArea.ToListAsync();
@@ -190,6 +238,7 @@ namespace Procuerment
                 alldata.Supplier = await context.Supplier.ToListAsync();
                 alldata.ValueContribution = await context.ValueContribution.ToListAsync();
                 alldata.ValueLever = await context.ValueLever.ToListAsync();
+                alldata.Roles = await context.Roles.ToListAsync();
                 if (alldata != null)
                 {
                     logger?.LogInformation($"Procuerment(s) found");
@@ -201,8 +250,6 @@ namespace Procuerment
             {
                 logger?.LogError(ex.ToString());
                 return (false, null, ex.Message);
-
-
             }
         }
 

@@ -102,23 +102,14 @@ namespace Procuerment.Controller
                 if (result.IsSuccess)
                 {
                     var Procuerments = result.Procuerment;
-                    if (queryParameter.UniqueId != null)
-                    {
-                        // Procuerments = Procuerments.Where(p => p.ProcurementId);
-                    }
-                    else
-                    {
-                        // Procuerments = Procuerments.Where(p => p.InitiativeTitle.ToLower().Contains(queryParameter.Title));
-
-                    }
                     Procuerments = Procuerments
-                                .Skip(queryParameter.Size * (queryParameter.Page - 1))
-                                .Take(queryParameter.Size);
+                                      .Skip(queryParameter.Size * (queryParameter.Page - 1))
+                                      .Take(queryParameter.Size);
                     return Ok(Procuerments);
                 }
                 else
                 {
-                    return NotFound();
+                    return NotFound(result.ErrorMessage);
                 }
                 // }
                 // else
@@ -128,13 +119,13 @@ namespace Procuerment.Controller
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                Console.WriteLine(e.Message);
                 throw new Exception("Somthing went wrong.Please try again later.");
             }
         }
 
         [HttpGet("filterdata")]
-        public async Task<IActionResult> GetProcuermentByFilter([FromQuery]string query)//Done
+        public async Task<IActionResult> GetProcuermentByFilter([FromQuery] string query, [FromQuery] DateTime fromdate, [FromQuery] DateTime todate)//Done
         {
             try
             {
@@ -142,9 +133,9 @@ namespace Procuerment.Controller
                 // var verification = await _userrepo.UserAccess(UserName);
                 // if (verification.IsSuccess)
                 // {
-                if (query != null)
+                if (query != null || fromdate != null || todate != null)
                 {
-                    var result = await _repo.GetProcuermentByFilter(query);//
+                    var result = await _repo.GetProcuermentByFilter(query, fromdate, todate);//
                     if (result.IsSuccess)
                     {
                         var Procuerments = result.Procuerment;
@@ -152,7 +143,7 @@ namespace Procuerment.Controller
                     }
                     else
                     {
-                        return NotFound();
+                        return NotFound("No records found");
                     }
                 }
                 else
@@ -217,6 +208,39 @@ namespace Procuerment.Controller
             _repo.updateProcuerment(pm);
             _repo.saveChanges();
             return NoContent();
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteCommand(int id)
+        {
+            var result = await _repo.GetProcuermentById(id);
+
+            if (result.IsSuccess)
+            {
+                _repo.deletedata(result.Procuerment);
+                var saved = _repo.saveChanges();
+                if (saved)
+                {
+
+                    var allData = await _repo.GetAllProcuerment();//
+                    if (allData.IsSuccess)
+                    {
+                        var Procuerments = allData.Procuerment;
+                        return Ok(Procuerments);
+                    }
+                    else
+                    {
+                        return NotFound(allData.ErrorMessage);
+                    }
+                }
+                else
+                {
+                    return BadRequest("Something went wrong");
+                }
+            }
+            return NotFound();
+
+
         }
 
     }
